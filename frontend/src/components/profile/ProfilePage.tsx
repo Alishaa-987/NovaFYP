@@ -17,10 +17,57 @@ export default function ProfilePage() {
     difficulty: ""
   });
   const [recommendations, setRecommendations] = useState<Project[]>([]);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState("");
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+    setDeleteSuccess("");
+
+    const confirmed = window.confirm(
+      "This will permanently delete your account. Continue?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) {
+        setDeleteError("No active session found.");
+        return;
+      }
+
+      const response = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setDeleteError(payload?.error || "Failed to delete account.");
+        return;
+      }
+
+      await supabase.auth.signOut();
+      setDeleteSuccess("Account deleted successfully.");
+      router.push("/");
+    } catch (err) {
+      setDeleteError("Failed to delete account. Please try again.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -40,14 +87,30 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-display text-text-100">
             Your Profile
           </h1>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="text-xs text-text-200 hover:text-text-100"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-xs text-text-200 hover:text-text-100"
+            >
+              Logout
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+              className="text-xs text-accent-500 hover:text-accent-400"
+            >
+              {deleteLoading ? "Deleting..." : "Delete account"}
+            </button>
+          </div>
         </div>
+        {deleteError ? (
+          <p className="text-sm text-accent-500 mt-3">{deleteError}</p>
+        ) : null}
+        {deleteSuccess ? (
+          <p className="text-sm text-brand-400 mt-3">{deleteSuccess}</p>
+        ) : null}
         <p className="text-text-200 mt-2">
           Update your preferences to unlock tailored recommendations.
         </p>
