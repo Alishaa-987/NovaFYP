@@ -24,7 +24,7 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
 
   const filters = useMemo<ProjectFilters>(
-    () => ({ technologies: selectedFilters }),
+    () => ({ technology: selectedFilters[0] }),
     [selectedFilters]
   );
 
@@ -49,7 +49,7 @@ export default function SearchPage() {
 
     try {
       if (query.trim()) {
-        const data = await searchProjects(query, filters);
+        const data = await searchProjects(query, filters, 6);
         setProjects(Array.isArray(data) ? data : []);
       } else {
         const data = await getProjects(filters);

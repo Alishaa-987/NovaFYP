@@ -4,9 +4,9 @@ import LoadingState from "@/components/common/LoadingState";
 import { getTrends } from "@/lib/api/trendsApi";
 
 interface TrendData {
-  totalProjects?: number;
-  topDomains?: string[];
-  topTechnologies?: string[];
+  domains?: Record<string, number>;
+  technologies?: Record<string, number>;
+  years?: Record<string, number>;
 }
 
 export default function AnalyticsDashboardPage() {
@@ -46,9 +46,33 @@ export default function AnalyticsDashboardPage() {
       ) : null}
       <div className="grid gap-6 md:grid-cols-3">
         {[
-          { label: "Total Projects", value: trends?.totalProjects ?? 1300 },
-          { label: "Top Domains", value: (trends?.topDomains || []).slice(0, 3).join(", ") || "AI, IoT, Web" },
-          { label: "Popular Tech", value: (trends?.topTechnologies || []).slice(0, 3).join(", ") || "Python, React, FastAPI" }
+          {
+            label: "Total Projects",
+            value:
+              trends?.years
+                ? Object.values(trends.years).reduce((sum, value) => sum + value, 0)
+                : 1300
+          },
+          {
+            label: "Top Domains",
+            value: trends?.domains
+              ? Object.entries(trends.domains)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 3)
+                  .map(([key]) => key)
+                  .join(", ")
+              : "AI, IoT, Web"
+          },
+          {
+            label: "Popular Tech",
+            value: trends?.technologies
+              ? Object.entries(trends.technologies)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 3)
+                  .map(([key]) => key)
+                  .join(", ")
+              : "Python, React, FastAPI"
+          }
         ].map((card) => (
           <motion.div
             key={card.label}

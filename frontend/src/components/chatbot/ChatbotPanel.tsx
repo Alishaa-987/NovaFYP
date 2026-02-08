@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import LottieWrapper from "@/components/common/LottieWrapper";
 import chatbotAnimation from "@/public/animations/chatbot.json";
 import { sendMessage } from "@/lib/api/chatbotApi";
-import { getRecommendations } from "@/lib/api/recommendApi";
+import { getProjects } from "@/lib/api/projectsApi";
 import ProjectCard from "@/components/projects/ProjectCard";
 import type { Project } from "@/lib/api/projectsApi";
 
@@ -28,7 +28,7 @@ export default function ChatbotPanel() {
   useEffect(() => {
     const loadRecommendations = async () => {
       try {
-        const data = await getRecommendations({ context: "chatbot" });
+        const data = await getProjects();
         setRecommendations(Array.isArray(data) ? data : []);
         setOffline(false);
       } catch {
@@ -51,12 +51,19 @@ export default function ChatbotPanel() {
     setLoading(true);
 
     try {
-      const response = await sendMessage(input, { history: messages });
+      const history = messages.map((message) => ({
+        role: message.role === "assistant" ? "bot" : "user",
+        message: message.content
+      }));
+      const response = await sendMessage(input, history, 5);
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: response?.reply || "Here are some ideas to explore."
+        content: response?.bot_response || "Here are some ideas to explore."
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      if (Array.isArray(response?.recommended_projects)) {
+        setRecommendations(response.recommended_projects);
+      }
       setOffline(false);
     } catch {
       const assistantMessage: ChatMessage = {

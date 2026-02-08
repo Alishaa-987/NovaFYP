@@ -1,20 +1,25 @@
 import api from "@/lib/api/http";
 
 export interface Project {
-  id: string | number;
+  id?: string | number;
   title: string;
+  abstract?: string;
   domain?: string;
   technologies?: string[];
   year?: number;
-  description?: string;
-  similarity?: number;
+  difficulty?: string;
+  hardware?: boolean;
+  source_url?: string;
+  uniqueness_score?: number;
+  similarity_score?: number;
 }
 
 export interface ProjectFilters {
   domain?: string;
-  technologies?: string[];
+  technology?: string;
   year?: number | string;
   difficulty?: string;
+  hardware?: boolean;
 }
 
 export async function getProjects(filters?: ProjectFilters) {

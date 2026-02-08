@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import type { Project } from "@/lib/api/projectsApi";
-import { getProjectById } from "@/lib/api/projectsApi";
 import { getRecommendations } from "@/lib/api/recommendApi";
+import { searchProjectsRaw } from "@/lib/api/searchApi";
 import ProjectCard from "@/components/projects/ProjectCard";
 import LoadingState from "@/components/common/LoadingState";
 import EmptyState from "@/components/common/EmptyState";
@@ -26,10 +26,23 @@ export default function ProjectDetailPage() {
     const loadProject = async () => {
       setLoading(true);
       try {
-        const data = await getProjectById(id as string);
-        setProject(data);
-        const recommendations = await getRecommendations({ projectId: id });
-        setSimilarProjects(Array.isArray(recommendations) ? recommendations : []);
+        const query = decodeURIComponent(String(id));
+        const searchData = await searchProjectsRaw(query, 1);
+        const match = Array.isArray(searchData?.results)
+          ? searchData.results[0]
+          : null;
+        setProject(match ?? null);
+        if (match?.title) {
+          const recommendations = await getRecommendations({
+            project_title: match.title,
+            top_k: 4
+          });
+          setSimilarProjects(
+            Array.isArray(recommendations) ? recommendations : []
+          );
+        } else {
+          setSimilarProjects([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -51,7 +64,7 @@ export default function ProjectDetailPage() {
       <div className="glass-card rounded-2xl p-8">
         <h1 className="text-3xl font-display text-text-100">{project.title}</h1>
         <p className="text-text-200 mt-3 max-w-2xl">
-          {project.description ||
+          {project.abstract ||
             "Detailed overview, scope, and outcomes for this project idea."}
         </p>
         <div className="mt-6 flex flex-wrap gap-3 text-sm">

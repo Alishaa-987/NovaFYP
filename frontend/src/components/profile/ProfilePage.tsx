@@ -94,7 +94,22 @@ export default function ProfilePage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const data = await getPersonalizedRecommendations(profile);
+    const skills = profile.skills
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const interests = profile.interests
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const data = await getPersonalizedRecommendations({
+      skills,
+      interests,
+      difficulty: profile.difficulty || "medium",
+      hardware_required: false,
+      top_k: 5
+    });
     setRecommendations(Array.isArray(data) ? data : []);
   };
 
