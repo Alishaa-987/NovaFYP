@@ -7,23 +7,26 @@ NovaFYP Advisor helps students discover, plan, and validate final year project i
 This project centers on a structured planning phase that guides teams from idea to execution:
 
 1. **MVP Planning**
-	- Define the problem and core solution.
-	- Identify the target users and their top 2-3 pain points.
-	- Validate scope with a simple success metric (e.g., time to find ideas).
-	- Decide the MVP boundaries: must-have, should-have, out-of-scope.
+	- Problem: students waste time searching for viable FYP ideas in scattered sources.
+	- Core solution: a single portal that searches archived FYPs, recommends similar ideas, and explains trade-offs via chatbot.
+	- Target users: final-year CS/SE students and FYP supervisors; pain points are idea discovery, validation, and scoping.
+	- Success metric: user can shortlist 3 viable ideas within 10 minutes.
+	- MVP boundaries: must-have (search, recommendations, chatbot, basic filters), should-have (bookmarks, profile), out-of-scope (full project management, team collaboration).
 2. **Technical Architecture**
-	- Choose your tools and stack.
-	- Define the data flow: dataset ingestion -> search/recommendation -> API -> UI.
-	- Specify core services: vector store/embedding, RAG/chatbot, analytics.
-	- Plan deployment targets and environment variables.
+	- Stack: Next.js + Tailwind (frontend), FastAPI/Flask (backend), Supabase auth, vector store for embeddings.
+	- Data flow: CSV ingestion -> embedding + indexing -> retrieval APIs -> frontend pages + chatbot.
+	- Core services: semantic search, similar-project recommendations, RAG chatbot, trends analytics.
+	- Deployment: frontend on Vercel, backend on Render/Fly/EC2; env vars for API base URL, Supabase keys, and model settings.
 3. **User Stories**
-	- Map the complete user experience.
-	- Prioritize key flows: Discover, Search, Chatbot, Profile/Bookmarks.
-	- Add acceptance criteria for each story to keep scope honest.
+	- As a student, I can search by domain/tech and see results as cards with title, abstract, and links.
+	- As a student, I can ask the chatbot for ideas and get 3 suggestions plus related projects.
+	- As a student, I can bookmark ideas and view them later in my profile.
+	- As a supervisor, I can review trends and see popular domains and tech stacks.
 4. **Design System**
-	- Create the look, feel, and interactions.
-	- Define typography, color palette, and spacing scale.
-	- Establish reusable components: cards, filters, chatbot, dashboards.
+	- Typography: display heading + readable body font; consistent weights for hierarchy.
+	- Color: brand primary, accent, neutral text, and status colors for chips.
+	- Spacing: 4/8/16/24/32 scale; consistent card padding and section gaps.
+	- Components: project cards, filter chips, chatbot panel, dashboard tiles, empty/loading states.
 
 These steps are represented in the landing page so users understand the workflow immediately.
 

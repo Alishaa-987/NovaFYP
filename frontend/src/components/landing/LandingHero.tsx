@@ -3,7 +3,7 @@ import Link from "next/link";
 import LottieWrapper from "@/components/common/LottieWrapper";
 
 const heroLottieUrl =
-  "https://assets7.lottiefiles.com/packages/lf20_5ngs2ksb.json";
+  "https://lottie.host/70d38e54-53ab-4e9a-81a4-34c44139d5c6/VbuBYRTOFI.lottie";
 
 export default function LandingHero() {
   return (
@@ -31,7 +31,7 @@ export default function LandingHero() {
             href="#auth"
             className="bg-brand-500 hover:bg-brand-400 text-white px-6 py-3 rounded-xl transition shadow-glow"
           >
-            Get Started - Sign In
+            Getting Started
           </Link>
           <Link
             href="#how"

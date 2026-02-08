@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+const DotLottie = dynamic(
+  () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
+  { ssr: false }
+);
 
 interface LottieWrapperProps {
   animationData?: object;
@@ -22,6 +26,7 @@ export default function LottieWrapper({
   className,
   style
 }: LottieWrapperProps) {
+  const isDotLottie = Boolean(animationUrl && animationUrl.includes(".lottie"));
   const [resolvedData, setResolvedData] = useState<object | null>(
     animationData ?? null
   );
@@ -34,7 +39,7 @@ export default function LottieWrapper({
   useEffect(() => {
     let isMounted = true;
 
-    if (!animationUrl || animationData) {
+    if (!animationUrl || animationData || isDotLottie) {
       return undefined;
     }
 
@@ -75,7 +80,7 @@ export default function LottieWrapper({
     rotateY.set(0);
   };
 
-  if (error || !resolvedData) {
+  if (error || (!resolvedData && !isDotLottie)) {
     return null;
   }
 
@@ -96,7 +101,11 @@ export default function LottieWrapper({
         rotateY: tiltY
       }}
     >
-      <Lottie animationData={resolvedData} loop={loop} autoplay={autoplay} />
+      {isDotLottie && animationUrl ? (
+        <DotLottie src={animationUrl} loop={loop} autoplay={autoplay} />
+      ) : (
+        <Lottie animationData={resolvedData} loop={loop} autoplay={autoplay} />
+      )}
     </motion.div>
   );
 }
