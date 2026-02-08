@@ -28,11 +28,11 @@ export default function SearchPage() {
     [selectedFilters]
   );
 
-  const loadProjects = async () => {
+  const loadProjects = async (nextFilters?: ProjectFilters) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getProjects();
+      const data = await getProjects(nextFilters);
       setProjects(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("Unable to load projects.");
@@ -48,8 +48,9 @@ export default function SearchPage() {
     setError(null);
 
     try {
-      if (query.trim()) {
-        const data = await searchProjects(query, filters, 6);
+      const trimmedQuery = query.trim();
+      if (trimmedQuery) {
+        const data = await searchProjects(trimmedQuery, filters, 6);
         setProjects(Array.isArray(data) ? data : []);
       } else {
         const data = await getProjects(filters);
@@ -64,12 +65,27 @@ export default function SearchPage() {
   };
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    const trimmedQuery = query.trim();
+    const timer = setTimeout(() => {
+      if (trimmedQuery) {
+        searchProjects(trimmedQuery, filters, 6)
+          .then((data) => setProjects(Array.isArray(data) ? data : []))
+          .catch(() => {
+            setError("Search failed. Try again.");
+            setProjects([]);
+          })
+          .finally(() => setLoading(false));
+      } else {
+        loadProjects(filters);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [query, filters]);
 
   const toggleFilter = (filter: string) => {
     setSelectedFilters((prev) =>
-      prev.includes(filter) ? prev.filter((item) => item !== filter) : [...prev, filter]
+      prev.includes(filter) ? prev.filter((item) => item !== filter) : [filter]
     );
   };
 

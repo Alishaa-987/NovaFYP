@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import type { Project } from "@/lib/api/projectsApi";
@@ -13,6 +14,50 @@ export default function ProjectCard({ project }: ProjectCardProps) {
     : typeof project.technologies === "string"
       ? project.technologies.split(",").map((item) => item.trim()).filter(Boolean)
       : [];
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const savedList = localStorage.getItem("novafyp_bookmarks");
+    if (!savedList) {
+      return;
+    }
+    try {
+      const items = JSON.parse(savedList) as Project[];
+      const exists = items.some(
+        (item) => String(item.id ?? item.title) === String(projectId)
+      );
+      setSaved(exists);
+    } catch {
+      setSaved(false);
+    }
+  }, [projectId]);
+
+  const handleBookmarkToggle = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const savedList = localStorage.getItem("novafyp_bookmarks");
+    const items = savedList ? (JSON.parse(savedList) as Project[]) : [];
+    const normalizedProject = {
+      ...project,
+      id: project.id ?? project.title
+    };
+
+    if (saved) {
+      const next = items.filter(
+        (item) => String(item.id ?? item.title) !== String(projectId)
+      );
+      localStorage.setItem("novafyp_bookmarks", JSON.stringify(next));
+      setSaved(false);
+    } else {
+      const next = [normalizedProject, ...items.filter((item) => String(item.id ?? item.title) !== String(projectId))];
+      localStorage.setItem("novafyp_bookmarks", JSON.stringify(next));
+      setSaved(true);
+    }
+  };
 
   return (
     <motion.div
@@ -58,6 +103,13 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       >
         View details
       </Link>
+      <button
+        type="button"
+        onClick={handleBookmarkToggle}
+        className="inline-block mt-2 text-xs text-text-200 hover:text-text-100"
+      >
+        {saved ? "Remove bookmark" : "Save bookmark"}
+      </button>
       {project.source_url ? (
         <a
           href={project.source_url}

@@ -7,6 +7,7 @@ import type { ChatHistoryItem } from "@/lib/api/chatbotApi";
 import { getProjects } from "@/lib/api/projectsApi";
 import ProjectCard from "@/components/projects/ProjectCard";
 import type { Project } from "@/lib/api/projectsApi";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -113,7 +114,11 @@ export default function ChatbotPanel() {
                     : "bg-white/5 text-text-200"
                 }`}
               >
-                {message.content}
+                {message.role === "assistant" ? (
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                ) : (
+                  message.content
+                )}
               </div>
             ))
           )}

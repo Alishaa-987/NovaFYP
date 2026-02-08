@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import type { Project } from "@/lib/api/projectsApi";
 import { getRecommendations } from "@/lib/api/recommendApi";
+import { getProjects } from "@/lib/api/projectsApi";
 import { searchProjectsRaw } from "@/lib/api/searchApi";
 import ProjectCard from "@/components/projects/ProjectCard";
 import LoadingState from "@/components/common/LoadingState";
@@ -17,6 +18,7 @@ export default function ProjectDetailPage() {
   const [similarProjects, setSimilarProjects] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -25,12 +27,32 @@ export default function ProjectDetailPage() {
 
     const loadProject = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const query = decodeURIComponent(String(id));
-        const searchData = await searchProjectsRaw(query, 1);
-        const match = Array.isArray(searchData?.results)
-          ? searchData.results[0]
-          : null;
+        const query = decodeURIComponent(String(id)).trim();
+        if (!query || query === "undefined") {
+          setProject(null);
+          setSimilarProjects([]);
+          setError("Invalid project reference.");
+          return;
+        }
+        let match: Project | null = null;
+        try {
+          const searchData = await searchProjectsRaw(query, 1);
+          match = Array.isArray(searchData?.results)
+            ? searchData.results[0]
+            : null;
+        } catch {
+          match = null;
+        }
+        if (!match) {
+          const fallbackList = await getProjects();
+          if (Array.isArray(fallbackList)) {
+            match = fallbackList.find(
+              (item) => String(item.title).toLowerCase() === query.toLowerCase()
+            ) ?? null;
+          }
+        }
         setProject(match ?? null);
         if (match?.title) {
           const recommendations = await getRecommendations({
@@ -43,6 +65,10 @@ export default function ProjectDetailPage() {
         } else {
           setSimilarProjects([]);
         }
+      } catch (err) {
+        setProject(null);
+        setSimilarProjects([]);
+        setError("Unable to load project details from the API.");
       } finally {
         setLoading(false);
       }
@@ -53,6 +79,10 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return <LoadingState message="Loading project details..." />;
+  }
+
+  if (error) {
+    return <EmptyState title="Unable to load project" description={error} />;
   }
 
   if (!project) {
@@ -73,6 +103,16 @@ export default function ProjectDetailPage() {
           {project.abstract ||
             "Detailed overview, scope, and outcomes for this project idea."}
         </p>
+        {project.source_url ? (
+          <a
+            href={project.source_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-accent-500 hover:text-accent-400 mt-3"
+          >
+            View repository
+          </a>
+        ) : null}
         <div className="mt-6 flex flex-wrap gap-3 text-sm">
           <span className="px-3 py-1 rounded-full bg-white/5 text-text-200">
             {project.domain || "General"}
