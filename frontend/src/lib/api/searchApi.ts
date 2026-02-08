@@ -6,11 +6,14 @@ export async function searchProjects(
   filters?: ProjectFilters,
   topK = 5
 ) {
-  const { data } = await api.post("/search", { query, top_k: topK });
-  return data?.results ?? data;
+  const params = { query, top_k: topK, ...filters };
+  const { data } = await api.post("/search", null, { params });
+  return data?.results ?? data?.projects ?? data?.items ?? data;
 }
 
 export async function searchProjectsRaw(query: string, topK = 5) {
-  const { data } = await api.post("/search", { query, top_k: topK });
+  const { data } = await api.post("/search", null, {
+    params: { query, top_k: topK }
+  });
   return data;
 }

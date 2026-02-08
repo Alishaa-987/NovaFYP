@@ -22,6 +22,9 @@ export default function SearchPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  const pageSize = 6;
 
   const filters = useMemo<ProjectFilters>(
     () => ({ technology: selectedFilters[0] }),
@@ -50,7 +53,7 @@ export default function SearchPage() {
     try {
       const trimmedQuery = query.trim();
       if (trimmedQuery) {
-        const data = await searchProjects(trimmedQuery, filters, 6);
+        const data = await searchProjects(trimmedQuery, filters, 24);
         setProjects(Array.isArray(data) ? data : []);
       } else {
         const data = await getProjects(filters);
@@ -66,9 +69,11 @@ export default function SearchPage() {
 
   useEffect(() => {
     const trimmedQuery = query.trim();
+    setLoading(true);
+    setError(null);
     const timer = setTimeout(() => {
       if (trimmedQuery) {
-        searchProjects(trimmedQuery, filters, 6)
+        searchProjects(trimmedQuery, filters, 24)
           .then((data) => setProjects(Array.isArray(data) ? data : []))
           .catch(() => {
             setError("Search failed. Try again.");
@@ -88,6 +93,16 @@ export default function SearchPage() {
       prev.includes(filter) ? prev.filter((item) => item !== filter) : [filter]
     );
   };
+
+  const totalPages = Math.max(1, Math.ceil(projects.length / pageSize));
+  const pagedProjects = projects.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, selectedFilters]);
 
   return (
     <section>
@@ -145,7 +160,19 @@ export default function SearchPage() {
         </div>
 
         {loading ? (
-          <LoadingState />
+          <div className="grid gap-6 md:grid-cols-2">
+            {Array.from({ length: pageSize }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="glass-card rounded-2xl p-6 h-44 animate-pulse"
+              >
+                <div className="h-4 w-2/3 bg-white/10 rounded" />
+                <div className="mt-4 h-3 w-full bg-white/5 rounded" />
+                <div className="mt-2 h-3 w-5/6 bg-white/5 rounded" />
+                <div className="mt-6 h-3 w-1/3 bg-white/5 rounded" />
+              </div>
+            ))}
+          </div>
         ) : error ? (
           <EmptyState title="Something went wrong" description={error} />
         ) : projects.length === 0 ? (
@@ -157,11 +184,35 @@ export default function SearchPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
           >
-            {projects.map((project) => (
+            {pagedProjects.map((project) => (
               <ProjectCard key={String(project.id)} project={project} />
             ))}
           </motion.div>
         )}
+
+        {!loading && projects.length > pageSize ? (
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page === 1}
+              className="px-3 py-2 rounded-full text-xs bg-white/5 text-text-200 disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-text-200">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-2 rounded-full text-xs bg-white/5 text-text-200 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );
