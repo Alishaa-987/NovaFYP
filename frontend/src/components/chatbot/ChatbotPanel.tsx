@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import LottieWrapper from "@/components/common/LottieWrapper";
 import chatbotAnimation from "@/public/animations/chatbot.json";
 import { sendMessage } from "@/lib/api/chatbotApi";
+import type { ChatHistoryItem } from "@/lib/api/chatbotApi";
 import { getProjects } from "@/lib/api/projectsApi";
 import ProjectCard from "@/components/projects/ProjectCard";
 import type { Project } from "@/lib/api/projectsApi";
@@ -51,7 +52,7 @@ export default function ChatbotPanel() {
     setLoading(true);
 
     try {
-      const history = messages.map((message) => ({
+      const history: ChatHistoryItem[] = messages.map((message) => ({
         role: message.role === "assistant" ? "bot" : "user",
         message: message.content
       }));
