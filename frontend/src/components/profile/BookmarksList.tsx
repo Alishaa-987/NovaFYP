@@ -32,8 +32,16 @@ export default function BookmarksList() {
       }
     };
 
+    const handleBookmarkUpdate = () => {
+      loadBookmarks();
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("novafyp_bookmarks_updated", handleBookmarkUpdate);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("novafyp_bookmarks_updated", handleBookmarkUpdate);
+    };
   }, []);
 
   const removeBookmark = (id?: string | number) => {
