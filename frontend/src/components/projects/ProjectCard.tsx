@@ -53,11 +53,21 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       localStorage.setItem("novafyp_bookmarks", JSON.stringify(next));
       setSaved(false);
       window.dispatchEvent(new Event("novafyp_bookmarks_updated"));
+      window.dispatchEvent(
+        new CustomEvent("novafyp_toast", {
+          detail: { message: "Bookmark removed", tone: "info" }
+        })
+      );
     } else {
       const next = [normalizedProject, ...items.filter((item) => String(item.id ?? item.title) !== String(projectId))];
       localStorage.setItem("novafyp_bookmarks", JSON.stringify(next));
       setSaved(true);
       window.dispatchEvent(new Event("novafyp_bookmarks_updated"));
+      window.dispatchEvent(
+        new CustomEvent("novafyp_toast", {
+          detail: { message: "Bookmark saved", tone: "success" }
+        })
+      );
     }
   };
 

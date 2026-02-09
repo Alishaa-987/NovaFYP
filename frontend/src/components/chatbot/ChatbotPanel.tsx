@@ -12,12 +12,7 @@ import ReactMarkdown from "react-markdown";
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  cards?: IdeaCard[];
-}
-
-interface IdeaCard {
-  title: string;
-  description: string;
+  recommendedProjects?: Project[];
 }
 
 const quickPrompts = [
@@ -26,115 +21,39 @@ const quickPrompts = [
   "Find data science FYPs"
 ];
 
-const actionVerbs = [
-  "Automate",
-  "Adjust",
-  "Build",
-  "Create",
-  "Monitor",
-  "Track",
-  "Detect",
-  "Predict",
-  "Analyze",
-  "Design",
-  "Develop",
-  "Implement",
-  "Secure",
-  "Classify",
-  "Use",
-  "Control",
-  "Log",
-  "Display",
-  "Recommend"
-];
-
-const normalizeLines = (text: string) =>
-  text
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-const toIdeaCards = (items: Array<{ title: string; description: string }>): IdeaCard[] =>
-  items
-    .map((item) => {
-      const cleanTitle = item.title.replace(/^\d+[.)-]?\s+/, "").trim();
-      const cleanDescription = item.description.trim();
-
-      if (!cleanTitle) {
-        return null;
-      }
-
-      if (!cleanDescription) {
-        return { title: cleanTitle, description: "" };
-      }
-
-      const verbMatch = actionVerbs.find((verb) =>
-        cleanDescription.includes(` ${verb} `)
-      );
-
-      if (verbMatch && cleanDescription.startsWith(verbMatch)) {
-        return { title: cleanTitle, description: cleanDescription };
-      }
-
-      return { title: cleanTitle, description: cleanDescription };
-    })
-    .filter((card): card is IdeaCard => Boolean(card));
-
-const extractIdeaItems = (content: string) => {
-  const lines = normalizeLines(content)
-    .map((line) => line.replace(/^\d+[.)-]?\s+/, "").trim())
-    .filter(
-      (line) =>
-        line.length > 0 &&
-        !/^\d+$/.test(line) &&
-        !/^iot project ideas$/i.test(line) &&
-        !/^project ideas$/i.test(line) &&
-        !/^all of these/i.test(line)
-    );
-
-  const items: Array<{ title: string; description: string }> = [];
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (line.includes(":")) {
-      const [title, description] = line.split(":", 2);
-      items.push({ title: title.trim(), description: description.trim() });
-      continue;
-    }
-
-    const nextLine = lines[i + 1];
-    if (nextLine && !nextLine.includes(":")) {
-      items.push({ title: line, description: nextLine });
-      i += 1;
-      continue;
-    }
-
-    items.push({ title: line, description: "" });
+const cardGridVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
   }
-
-  return items;
 };
 
-const formatAssistantContent = (content: string) => {
-  const items = extractIdeaItems(content);
-  if (items.length < 2) {
-    return { markdown: content, cards: [] as IdeaCard[] };
+const cardItemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" }
   }
-
-  const intro = "Here are some project ideas you can explore.";
-  const cards = toIdeaCards(items);
-  const heading = content.toLowerCase().includes("iot")
-    ? "## IoT Project Ideas"
-    : "## Project Ideas";
-  const bullets = cards
-    .map((card) => `- **${card.title}**${card.description ? `: ${card.description}` : ""}`)
-    .join("\n");
-
-  return {
-    markdown: `${intro}\n\n${heading}\n${bullets}`,
-    cards
-  };
 };
+
+const formatRelativeTime = (timestamp: number, now: number) => {
+  const diffSeconds = Math.max(0, Math.round((now - timestamp) / 1000));
+  if (diffSeconds < 15) {
+    return "just now";
+  }
+  if (diffSeconds < 60) {
+    return `${diffSeconds} sec ago`;
+  }
+  const diffMinutes = Math.round(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min ago`;
+  }
+  const diffHours = Math.round(diffMinutes / 60);
+  return `${diffHours} hr ago`;
+};
+
 
 export default function ChatbotPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -143,6 +62,37 @@ export default function ChatbotPanel() {
   const [recommendations, setRecommendations] = useState<Project[]>([]);
   const [offline, setOffline] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  const latestRecommendations =
+    [...messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "assistant" && message.recommendedProjects?.length
+      )?.recommendedProjects ?? recommendations;
+
+  const updatedLabel = lastUpdatedAt
+    ? `Updated ${formatRelativeTime(lastUpdatedAt, now)} · ${new Date(
+        lastUpdatedAt
+      ).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })}`
+    : "Waiting for recommendations";
+
+  useEffect(() => {
+    if (!lastUpdatedAt) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 15000);
+
+    return () => window.clearInterval(timer);
+  }, [lastUpdatedAt]);
 
   useEffect(() => {
     const loadRecommendations = async () => {
@@ -150,6 +100,7 @@ export default function ChatbotPanel() {
         const data = await getProjects();
         setRecommendations(Array.isArray(data) ? data : []);
         setOffline(false);
+        setLastUpdatedAt(Date.now());
       } catch {
         setOffline(true);
         setRecommendations([]);
@@ -175,19 +126,17 @@ export default function ChatbotPanel() {
         message: message.content
       }));
       const response = await sendMessage(input, history, 5);
-      const formatted = formatAssistantContent(
-        response?.bot_response || "Here are some ideas to explore."
-      );
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content:
-          formatted.markdown.replace(/\s+(\d+\.)/g, "\n\n$1") ||
-          "Here are some ideas to explore.",
-        cards: formatted.cards
+        content: response?.bot_response || "Here are some ideas to explore.",
+        recommendedProjects: Array.isArray(response?.recommended_projects)
+          ? response.recommended_projects
+          : undefined
       };
       setMessages((prev) => [...prev, assistantMessage]);
       if (Array.isArray(response?.recommended_projects)) {
         setRecommendations(response.recommended_projects);
+        setLastUpdatedAt(Date.now());
       }
       setOffline(false);
     } catch {
@@ -260,23 +209,26 @@ export default function ChatbotPanel() {
                   message.content
                 )}
               </div>
-              {message.role === "assistant" && message.cards?.length ? (
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {message.cards.map((card, cardIndex) => (
-                    <div
-                      key={`${card.title}-${cardIndex}`}
-                      className="glass-card rounded-xl p-4 text-sm text-text-200"
-                    >
-                      <p className="text-text-100 font-semibold">
-                        {card.title}
-                      </p>
-                      {card.description ? (
-                        <p className="mt-2 text-xs text-text-200">
-                          {card.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
+              {message.role === "assistant" && message.recommendedProjects?.length ? (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-text-100 mb-3">
+                    Recommended Projects
+                  </p>
+                  <motion.div
+                    className="grid gap-4 sm:grid-cols-2"
+                    initial="hidden"
+                    animate="visible"
+                    variants={cardGridVariants}
+                  >
+                    {message.recommendedProjects.map((project) => (
+                      <motion.div
+                        key={String(project.id ?? project.title)}
+                        variants={cardItemVariants}
+                      >
+                        <ProjectCard project={project} />
+                      </motion.div>
+                    ))}
+                  </motion.div>
                 </div>
               ) : null}
               </div>
@@ -329,16 +281,25 @@ export default function ChatbotPanel() {
           </p>
         </div>
 
-        <div>
+        <motion.div
+          key={lastUpdatedAt ?? "initial"}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        >
           <h3 className="text-lg font-semibold text-text-100 mb-3">
-            Top Recommendations
+            Latest Recommendations
           </h3>
+          <p className="text-xs text-text-200 mb-4">{updatedLabel}</p>
           <div className="space-y-4">
-            {recommendations.slice(0, 3).map((project) => (
-              <ProjectCard key={String(project.id)} project={project} />
+            {latestRecommendations.slice(0, 3).map((project) => (
+              <ProjectCard
+                key={String(project.id ?? project.title)}
+                project={project}
+              />
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
